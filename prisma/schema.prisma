@@ -1,0 +1,139 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  runtime      = "nodejs"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model HospitalManager {
+  gestor_hospital_id                  BigInt                                 @id @default(autoincrement())
+  hospital_id                         BigInt
+  gestor_hospital_matricula           String                                 @unique(map: "usuario_matricula_UNIQUE") @db.VarChar(30)
+  gestor_hospital_nome_completo       String                                 @db.VarChar(150)
+  gestor_hospital_cpf                 String                                 @unique(map: "usuario_cpf_UNIQUE") @db.Char(11)
+  gestor_hospital_email_institucional String                                 @db.VarChar(65)
+  gestor_hospital_senha_hash          String                                 @db.VarChar(255)
+  gestor_hospital_numero_celular      String                                 @db.VarChar(11)
+  gestor_hospital_perfil              gestor_hospital_gestor_hospital_perfil
+  gestor_hospital_status              Int                                    @db.TinyInt
+  hospital                            Hospital                               @relation(fields: [hospital_id], references: [hospital_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_usuario_hospital")
+  historicos                          StatusHistory[]
+  solicitacoes                        Request[]
+
+  @@index([hospital_id], map: "fk_usuario_hospital_idx")
+  @@map("gestor_hospital")
+}
+
+model StatusHistory {
+  historico_status_id                 BigInt          @id @default(autoincrement())
+  solicitacao_id                      BigInt
+  gestor_hopital_id                   BigInt
+  historico_status_status_anterior_id BigInt
+  historico_status_status_novo_id     BigInt
+  historico_status_data_hora_mudanca  DateTime        @default(now()) @db.DateTime(0)
+  historico_status_status             Int             @db.TinyInt
+  solicitacao                         Request         @relation(fields: [solicitacao_id], references: [solicitacao_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_historico_status_solicitacao")
+  gestor                              HospitalManager @relation(fields: [gestor_hopital_id], references: [gestor_hospital_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_usuario_historico_status")
+
+  @@index([solicitacao_id], map: "fk_historico_status_solicitacao_idx")
+  @@index([gestor_hopital_id], map: "fk_usuario_historico_status_idx")
+  @@map("historico_status")
+}
+
+model Hospital {
+  hospital_id                     BigInt            @id @default(autoincrement())
+  hospital_cnpj                   String            @unique(map: "hospital_cnpj_UNIQUE") @db.Char(14)
+  hospital_razao_social           String            @db.VarChar(150)
+  hospital_cnes                   String            @unique(map: "hospital_cnes_UNIQUE") @db.Char(7)
+  hospital_endereco_completo      String            @db.VarChar(255)
+  hospital_telefone_institucional String            @db.VarChar(11)
+  hospital_email_institucional    String?           @db.VarChar(200)
+  hospital_status                 Boolean
+  hospital_data_criacao           DateTime?         @db.DateTime(0)
+  gestores                        HospitalManager[]
+  solicitacoes                    Request[]
+
+  @@map("hospital")
+}
+
+model RequestItem {
+  item_solicitacao_id                BigInt                                           @id @default(autoincrement())
+  solicitacao_id                     BigInt
+  item_solicitacao_tipo_sanguineo    item_solicitacao_item_solicitacao_tipo_sanguineo
+  item_solicitacao_hemocomponente    item_solicitacao_item_solicitacao_hemocomponente
+  item_solicitacao_quantidade_bolsas Int
+  item_solicitacao_status            Int                                              @db.TinyInt
+  item_solicitacao_fator_rh          item_solicitacao_item_solicitacao_fator_rh
+  solicitacao                        Request                                          @relation(fields: [solicitacao_id], references: [solicitacao_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_item_solicitacao_solicitacao")
+
+  @@index([solicitacao_id], map: "fk_item_solicitacao_solicitacao_idx")
+  @@map("item_solicitacao")
+}
+
+model Request {
+  solicitacao_id                         BigInt                                   @id @default(autoincrement())
+  hospital_id                            BigInt
+  gestor_hopital_id                      BigInt
+  solicitacao_codigo_pedido              String                                   @unique(map: "solicitacao_codigo_pedido_UNIQUE") @db.VarChar(25)
+  solicitacao_tipo_solicitacao           solicitacao_solicitacao_tipo_solicitacao
+  solicitacao_status                     Int
+  solicitacao_justificativa_emergencia   String?                                  @db.VarChar(800)
+  solicitacao_data_hora_criacao          DateTime                                 @default(now()) @db.DateTime(0)
+  solicitacao_data_hora_prevista_entrega DateTime?                                @db.DateTime(0)
+  solicitacao_data_hora_recebimento      DateTime?                                @db.DateTime(0)
+  solicitacao_status_atual               solicitacao_solicitacao_status_atual
+  historicos                             StatusHistory[]
+  itens                                  RequestItem[]
+  hospital                               Hospital                                 @relation(fields: [hospital_id], references: [hospital_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_solicitacao_hospital")
+  gestor                                 HospitalManager                          @relation(fields: [gestor_hopital_id], references: [gestor_hospital_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_solicitacao_usuario")
+
+  @@index([hospital_id], map: "fk_solicitacao_hospital_idx")
+  @@index([gestor_hopital_id], map: "fk_solicitacao_usuario_idx")
+  @@map("solicitacao")
+}
+
+enum item_solicitacao_item_solicitacao_tipo_sanguineo {
+  A_POS  @map("A+")
+  A_NEG  @map("A-")
+  B_POS  @map("B+")
+  B_NEG  @map("B-")
+  AB_POS @map("AB+")
+  AB_NEG @map("AB-")
+  O_POS  @map("O+")
+  O_NEG  @map("O-")
+}
+
+enum item_solicitacao_item_solicitacao_hemocomponente {
+  CONCENTRADO_HEMACIAS
+  PLAQUETAS
+  PLASMA
+  CRIOPRECIPITADO
+}
+
+enum solicitacao_solicitacao_tipo_solicitacao {
+  REPOSICAO
+  EMERGENCIAL
+}
+
+enum item_solicitacao_item_solicitacao_fator_rh {
+  POSITIVO @map("+")
+  NEGATIVO @map("-")
+}
+
+enum gestor_hospital_gestor_hospital_perfil {
+  ADMIN
+  GESTOR
+}
+
+enum solicitacao_solicitacao_status_atual {
+  PENDENTE
+  APROVADO_RESERVADO
+  EM_TRANSITO
+  ENTREGUE
+  RECUSADO_ESTOQUE_INSUFICIENTE
+  FALHA_ENVIO
+}

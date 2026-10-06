@@ -6,7 +6,7 @@ IsInt, IsNotEmpty, IsString, Matches, Max, Min, MinLength, validateSync,
 class EnvironmentVariables {
 @IsString()
 @IsNotEmpty({ message: 'DATABASE_URL e obrigatoria' })
-@Matches(/^mysql:\/\ /, { message: 'DATABASE_URL deve comecar com mysql: /' })
+@Matches(/^mysql:\/\//, { message: 'DATABASE_URL deve comecar com mysql://' })
 DATABASE_URL!: string;
 @IsString()
 @MinLength(32, { message: 'JWT_SECRET deve ter no minimo 32 caracteres' })

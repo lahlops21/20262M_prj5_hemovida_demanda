@@ -14,6 +14,6 @@ transform: true,
 const config = app.get(ConfigService);
 const porta = config.get<number>('PORT', 3000);
 await app.listen(porta);
-Logger.log(`API no ar em http: /localhost:${porta}`, 'Bootstrap');
+Logger.log(`API no ar em http://localhost:${porta}`, 'Bootstrap');
 }
 void bootstrap();

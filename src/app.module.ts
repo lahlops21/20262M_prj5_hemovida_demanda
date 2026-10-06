@@ -1,21 +1,17 @@
 import { Module } from '@nestjs/common';
-import { createObserveModule } from '@nestjs/observe';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-
-export const { ObserveModule, ObserveInstrument } = createObserveModule();
-
+import { ConfigModule } from '@nestjs/config';
+import { validateEnv } from './config/env.validation';
+import { PrismaModule } from './prisma/prisma.module';
+import { HealthModule } from './health/health.module';
 @Module({
-  imports: [
-    // Distributed tracing, auto-correlated logs, request/job metrics, error
-    // telemetry, alarms, and more — out of the box. Sign up at https://observe.nestjs.com
-    ObserveModule.forRoot({
-      appKey: 'YOUR_APP_KEY',
-      appSecret: 'YOUR_APP_SECRET',
-      serviceId: 'api_hemovida_demanda',
-    }),
-  ],
-  controllers: [AppController],
-  providers: [AppService],
+imports: [
+ConfigModule.forRoot({
+isGlobal: true,
+cache: true,
+validate: validateEnv,
+}),
+PrismaModule,
+HealthModule,
+],
 })
 export class AppModule {}
