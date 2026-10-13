@@ -16,4 +16,7 @@ const porta = config.get<number>('PORT', 3000);
 await app.listen(porta);
 Logger.log(`API no ar em http://localhost:${porta}`, 'Bootstrap');
 }
+(BigInt.prototype as any).toJSON = function () {
+  return this.toString();
+};
 void bootstrap();

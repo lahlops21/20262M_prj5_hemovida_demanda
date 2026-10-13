@@ -31,16 +31,16 @@ model HospitalManager {
 model StatusHistory {
   historico_status_id                 BigInt          @id @default(autoincrement())
   solicitacao_id                      BigInt
-  gestor_hopital_id                   BigInt
+  gestor_hospital_id                   BigInt          @map("gestor_hopital_id")
   historico_status_status_anterior_id BigInt
   historico_status_status_novo_id     BigInt
   historico_status_data_hora_mudanca  DateTime        @default(now()) @db.DateTime(0)
   historico_status_status             Int             @db.TinyInt
   solicitacao                         Request         @relation(fields: [solicitacao_id], references: [solicitacao_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_historico_status_solicitacao")
-  gestor                              HospitalManager @relation(fields: [gestor_hopital_id], references: [gestor_hospital_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_usuario_historico_status")
+  gestor                              HospitalManager @relation(fields: [gestor_hospital_id], references: [gestor_hospital_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_usuario_historico_status")
 
   @@index([solicitacao_id], map: "fk_historico_status_solicitacao_idx")
-  @@index([gestor_hopital_id], map: "fk_usuario_historico_status_idx")
+  @@index([gestor_hospital_id], map: "fk_usuario_historico_status_idx")
   @@map("historico_status")
 }
 
@@ -77,7 +77,7 @@ model RequestItem {
 model Request {
   solicitacao_id                         BigInt                                   @id @default(autoincrement())
   hospital_id                            BigInt
-  gestor_hopital_id                      BigInt
+  gestor_hospital_id                      BigInt                                   @map("gestor_hopital_id")
   solicitacao_codigo_pedido              String                                   @unique(map: "solicitacao_codigo_pedido_UNIQUE") @db.VarChar(25)
   solicitacao_tipo_solicitacao           solicitacao_solicitacao_tipo_solicitacao
   solicitacao_status                     Int
@@ -89,10 +89,10 @@ model Request {
   historicos                             StatusHistory[]
   itens                                  RequestItem[]
   hospital                               Hospital                                 @relation(fields: [hospital_id], references: [hospital_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_solicitacao_hospital")
-  gestor                                 HospitalManager                          @relation(fields: [gestor_hopital_id], references: [gestor_hospital_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_solicitacao_usuario")
+  gestor                                 HospitalManager                          @relation(fields: [gestor_hospital_id], references: [gestor_hospital_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_solicitacao_usuario")
 
   @@index([hospital_id], map: "fk_solicitacao_hospital_idx")
-  @@index([gestor_hopital_id], map: "fk_solicitacao_usuario_idx")
+  @@index([gestor_hospital_id], map: "fk_solicitacao_usuario_idx")
   @@map("solicitacao")
 }
 
