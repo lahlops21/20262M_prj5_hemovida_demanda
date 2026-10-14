@@ -9,7 +9,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { TIPOS_SANGUINEOS } from './blood-types';
 import { CreateRequestDto } from './dto/create-request.dto';
 import { ListRequestsDto } from './dto/list-requests.dto';
-import { STATUS_CANCELAMENTO, STATUS_NUMERO } from './request-status';
+import { STATUS_CANCELAMENTO } from './request-status';
 
 const NOME_DO_GESTOR = {
   select: { gestor_hospital_nome_completo: true },
@@ -47,7 +47,6 @@ export class RequestsService {
           gestor_hospital_id: gestor.gestor_hospital_id,
           solicitacao_codigo_pedido: gerarCodigoPedido(),
           solicitacao_tipo_solicitacao: dto.tipo,
-          solicitacao_status: 1,
           solicitacao_status_atual: 'PENDENTE',
           solicitacao_justificativa_emergencia:
             dto.tipo === 'EMERGENCIAL' ? dto.justificativa : null,
@@ -59,15 +58,13 @@ export class RequestsService {
                 TIPOS_SANGUINEOS[item.tipoSanguineo].fator,
               item_solicitacao_hemocomponente: item.hemocomponente,
               item_solicitacao_quantidade_bolsas: item.quantidadeBolsas,
-              item_solicitacao_status: 1,
             })),
           },
           historicos: {
             create: {
               gestor_hospital_id: gestor.gestor_hospital_id,
-              historico_status_status_anterior_id: 0n,
-              historico_status_status_novo_id: BigInt(STATUS_NUMERO.PENDENTE),
-              historico_status_status: 1,
+              historico_status_status_anterior: null, // primeiro registro
+              historico_status_status_novo: 'PENDENTE',
             },
           },
         },
@@ -157,11 +154,8 @@ export class RequestsService {
         data: {
           solicitacao_id: id,
           gestor_hospital_id: gestor.gestor_hospital_id,
-          historico_status_status_anterior_id: BigInt(STATUS_NUMERO.PENDENTE),
-          historico_status_status_novo_id: BigInt(
-            STATUS_NUMERO[STATUS_CANCELAMENTO],
-          ),
-          historico_status_status: 1,
+          historico_status_status_anterior: 'PENDENTE',
+          historico_status_status_novo: STATUS_CANCELAMENTO,
         },
       });
     });

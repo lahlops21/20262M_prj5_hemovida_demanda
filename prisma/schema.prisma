@@ -29,15 +29,14 @@ model HospitalManager {
 }
 
 model StatusHistory {
-  historico_status_id                 BigInt          @id @default(autoincrement())
-  solicitacao_id                      BigInt
-  gestor_hospital_id                   BigInt          @map("gestor_hopital_id")
-  historico_status_status_anterior_id BigInt
-  historico_status_status_novo_id     BigInt
-  historico_status_data_hora_mudanca  DateTime        @default(now()) @db.DateTime(0)
-  historico_status_status             Int             @db.TinyInt
-  solicitacao                         Request         @relation(fields: [solicitacao_id], references: [solicitacao_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_historico_status_solicitacao")
-  gestor                              HospitalManager @relation(fields: [gestor_hospital_id], references: [gestor_hospital_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_usuario_historico_status")
+  historico_status_id                BigInt                                @id @default(autoincrement())
+  solicitacao_id                     BigInt
+  gestor_hospital_id                 BigInt?
+  historico_status_data_hora_mudanca DateTime @default(now()) @db.DateTime(0)
+  historico_status_status_anterior   solicitacao_solicitacao_status_atual?
+  historico_status_status_novo       solicitacao_solicitacao_status_atual
+  solicitacao                        Request                               @relation(fields: [solicitacao_id], references: [solicitacao_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_historico_status_solicitacao")
+  gestor                             HospitalManager?                      @relation(fields: [gestor_hospital_id], references: [gestor_hospital_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_usuario_historico_status")
 
   @@index([solicitacao_id], map: "fk_historico_status_solicitacao_idx")
   @@index([gestor_hospital_id], map: "fk_usuario_historico_status_idx")
@@ -66,7 +65,6 @@ model RequestItem {
   item_solicitacao_tipo_sanguineo    item_solicitacao_item_solicitacao_tipo_sanguineo
   item_solicitacao_hemocomponente    item_solicitacao_item_solicitacao_hemocomponente
   item_solicitacao_quantidade_bolsas Int
-  item_solicitacao_status            Int                                              @db.TinyInt
   item_solicitacao_fator_rh          item_solicitacao_item_solicitacao_fator_rh
   solicitacao                        Request                                          @relation(fields: [solicitacao_id], references: [solicitacao_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_item_solicitacao_solicitacao")
 
@@ -77,15 +75,14 @@ model RequestItem {
 model Request {
   solicitacao_id                         BigInt                                   @id @default(autoincrement())
   hospital_id                            BigInt
-  gestor_hospital_id                      BigInt                                   @map("gestor_hopital_id")
+  gestor_hospital_id                     BigInt
   solicitacao_codigo_pedido              String                                   @unique(map: "solicitacao_codigo_pedido_UNIQUE") @db.VarChar(25)
   solicitacao_tipo_solicitacao           solicitacao_solicitacao_tipo_solicitacao
-  solicitacao_status                     Int
   solicitacao_justificativa_emergencia   String?                                  @db.VarChar(800)
-  solicitacao_data_hora_criacao          DateTime                                 @default(now()) @db.DateTime(0)
+ solicitacao_data_hora_criacao DateTime @default(now()) @db.DateTime(0)
   solicitacao_data_hora_prevista_entrega DateTime?                                @db.DateTime(0)
   solicitacao_data_hora_recebimento      DateTime?                                @db.DateTime(0)
-  solicitacao_status_atual               solicitacao_solicitacao_status_atual
+  solicitacao_status_atual               solicitacao_solicitacao_status_atual     @default(PENDENTE)
   historicos                             StatusHistory[]
   itens                                  RequestItem[]
   hospital                               Hospital                                 @relation(fields: [hospital_id], references: [hospital_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_solicitacao_hospital")
@@ -136,4 +133,5 @@ enum solicitacao_solicitacao_status_atual {
   ENTREGUE
   RECUSADO_ESTOQUE_INSUFICIENTE
   FALHA_ENVIO
+  CANCELADO
 }
