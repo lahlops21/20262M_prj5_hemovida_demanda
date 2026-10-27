@@ -1,0 +1,13 @@
+services:
+  api:
+    build: .
+    image: hemovida-api:latest
+    container_name: hemovida-api
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    # Sem valor depois do nome: o Docker pega a variável do ambiente de quem
+    # executou o comando. O "infisical run" injeta esses valores nesse ambiente.
+    environment:
+      - DATABASE_URL
+      - JWT_SECRET

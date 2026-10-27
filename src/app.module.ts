@@ -16,4 +16,9 @@ HealthModule,
 RequestsModule,
 ],
 })
-export class AppModule {}
+export class AppModule {
+  constructor() {
+  console.log('DATABASE_URL carregada:', !!process.env.DATABASE_URL);
+  console.log('JWT_SECRET carregado:', !!process.env.JWT_SECRET);
+}
+}
