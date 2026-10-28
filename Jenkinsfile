@@ -38,23 +38,11 @@ pipeline {
 
                 // O "infisical run" injeta DATABASE_URL e JWT_SECRET no docker-compose,
                 // sem escrever nenhum .env em disco.
-                // A Machine Identity usa Client ID + Client Secret. O pipeline troca os dois
-                // por um token temporário e usa esse token no "infisical run".
-                withCredentials([
-                    string(credentialsId: 'infisical-client-id', variable: 'INFISICAL_CLIENT_ID'),
-                    string(credentialsId: 'infisical-client-secret', variable: 'INFISICAL_CLIENT_SECRET')
-                ]) {
-                    script {
-                        def token = bat(
-                            returnStdout: true,
-                            script: '@npx -y @infisical/cli login --method=universal-auth --client-id=%INFISICAL_CLIENT_ID% --client-secret=%INFISICAL_CLIENT_SECRET% --silent --plain'
-                        ).trim()
-
-                        withEnv(["INFISICAL_TOKEN=${token}"]) {
-                            // TROQUE pelo ID do seu projeto (Project Settings no Infisical)
-                            bat 'npx -y @infisical/cli run --env=prod --path=/ --projectId=d8cbc261-c43e-441f-b77b-9b2775a386ad -- docker-compose up -d --build'
-                        }
-                    }
+                // O Service Token fica guardado no Jenkins (credencial "infisical-token-prod").
+                // A CLI do Infisical lê sozinha a variável INFISICAL_TOKEN, então não
+                // precisa de --token nem de --projectId.
+                withCredentials([string(credentialsId: 'infisical-token-prod', variable: 'INFISICAL_TOKEN')]) {
+                    bat 'npx -y @infisical/cli run --env=prod --path=/ -- docker-compose up -d --build'
                 }
             }
         }
