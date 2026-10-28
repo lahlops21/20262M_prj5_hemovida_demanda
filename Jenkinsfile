@@ -52,7 +52,7 @@ pipeline {
 
                         withEnv(["INFISICAL_TOKEN=${token}"]) {
                             // TROQUE pelo ID do seu projeto (Project Settings no Infisical)
-                            bat 'npx -y @infisical/cli run --env=prod --path=/ --projectId=COLE-AQUI-O-ID-DO-PROJETO -- docker-compose up -d --build'
+                            bat 'npx -y @infisical/cli run --env=prod --path=/ --projectId=d8cbc261-c43e-441f-b77b-9b2775a386ad -- docker-compose up -d --build'
                         }
                     }
                 }
