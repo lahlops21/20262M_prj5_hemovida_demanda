@@ -8,7 +8,7 @@ pipeline {
     }
 
     environment {
-        APP_NAME = 'hemovida-api'
+        APP_NAME = 'hemovida-demanda'
     }
 
     stages {
