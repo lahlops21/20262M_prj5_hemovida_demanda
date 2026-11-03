@@ -43,6 +43,6 @@ COPY --from=build /app/dist ./dist
 COPY --from=build /app/prisma ./prisma
 COPY --from=build /app/prisma7.config.ts ./prisma7.config.ts
 
-EXPOSE 3000
+EXPOSE 7504
 
 CMD ["node", "dist/main"]

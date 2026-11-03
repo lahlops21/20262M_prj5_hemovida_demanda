@@ -130,7 +130,7 @@ pipeline {
             ====================================
              HEMOVIDA API
              DEPLOY EXECUTADO COM SUCESSO
-             PORTA: 3000
+             PORTA: 7504
             ====================================
             '''
         }
