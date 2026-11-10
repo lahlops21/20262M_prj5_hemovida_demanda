@@ -4,9 +4,9 @@ services:
       context: .
       dockerfile: Dockerfile
 
-    image: hemovida-api:latest
+    image: api_hemovida_demanda:latest
 
-    container_name: hemovida-api
+    container_name: api_hemovida_demanda
 
     restart: unless-stopped
 
