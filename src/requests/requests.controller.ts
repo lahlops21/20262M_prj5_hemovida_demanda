@@ -1,45 +1,45 @@
 import {
-  Body, Controller, Get, Headers, Param, Patch, Post, Query,
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
 } from '@nestjs/common';
-import { lerGestorId } from '../common/helpers/gestor-id';
+import type { JwtPayload } from '../auth/auth.types';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { UsuarioAtual } from '../auth/decorators/usuario-atual.decorator';
+import { Perfil } from '../auth/perfis';
 import { lerId } from '../common/helpers/id';
 import { CreateRequestDto } from './dto/create-request.dto';
 import { ListRequestsDto } from './dto/list-requests.dto';
 import { RequestsService } from './requests.service';
 
+// Quem esta logado vem do TOKEN (emitido pelo MS4), nao mais de um header.
+// So o gestor de demanda acessa; o hospital dele tambem vem do token.
+@Roles(Perfil.GESTOR_DEMANDA)
 @Controller('requests')
 export class RequestsController {
   constructor(private readonly requests: RequestsService) {}
 
   @Post()
-  criar(
-    @Headers('x-gestor-id') gestor: string | undefined,
-    @Body() dto: CreateRequestDto,
-  ) {
-    return this.requests.criar(lerGestorId(gestor), dto);
+  criar(@UsuarioAtual() usuario: JwtPayload, @Body() dto: CreateRequestDto) {
+    return this.requests.criar(usuario, dto);
   }
 
   @Get()
-  listar(
-    @Headers('x-gestor-id') gestor: string | undefined,
-    @Query() query: ListRequestsDto,
-  ) {
-    return this.requests.listar(lerGestorId(gestor), query);
+  listar(@UsuarioAtual() usuario: JwtPayload, @Query() query: ListRequestsDto) {
+    return this.requests.listar(usuario, query);
   }
 
   @Get(':id')
-  buscar(
-    @Headers('x-gestor-id') gestor: string | undefined,
-    @Param('id') id: string,
-  ) {
-    return this.requests.buscarPorId(lerGestorId(gestor), lerId(id));
+  buscar(@UsuarioAtual() usuario: JwtPayload, @Param('id') id: string) {
+    return this.requests.buscarPorId(usuario, lerId(id));
   }
 
   @Patch(':id/cancel')
-  cancelar(
-    @Headers('x-gestor-id') gestor: string | undefined,
-    @Param('id') id: string,
-  ) {
-    return this.requests.cancelar(lerGestorId(gestor), lerId(id));
+  cancelar(@UsuarioAtual() usuario: JwtPayload, @Param('id') id: string) {
+    return this.requests.cancelar(usuario, lerId(id));
   }
 }

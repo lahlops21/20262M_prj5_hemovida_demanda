@@ -1,4 +1,9 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaMariaDb } from '@prisma/adapter-mariadb';
 import { PrismaClient } from '../generated/prisma/client';
@@ -19,14 +24,14 @@ export class PrismaService
       adapter: new PrismaMariaDb(
         paraUrlDoDriver(config.getOrThrow<string>('DATABASE_URL')),
       ),
-      omit: {
-        hospitalManager: { gestor_hospital_senha_hash: true },
-      },
     });
   }
 
   async onModuleInit(): Promise<void> {
     await this.$connect();
+    // Com o adapter MariaDB, $connect() nao falha se o banco estiver fora do ar.
+    // O SELECT 1 forca a conexao e derruba o start com uma mensagem clara.
+    await this.$queryRaw`SELECT 1`;
     this.logger.log('Conectado ao banco de dados');
   }
 

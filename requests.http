@@ -1,0 +1,65 @@
+### MS3 Demanda - testes com login pelo MS4 (extensao "REST Client").
+### Rode na ordem. Ajuste as portas conforme o .env de cada servico.
+### IMPORTANTE: o JWT_SECRET do MS3 tem que ser IGUAL ao do MS4.
+
+@ms4 = http://localhost:7505
+@ms3 = http://localhost:7504
+
+### 1) Login de um ADMIN no MS4 (usar o ADMIN real)
+# @name loginAdmin
+POST {{ms4}}/auth/login/admin
+Content-Type: application/json
+
+{ "email": "admin@hemovida.com", "senha": "hemoLBR*&senac" }
+
+### 2) Criar um GESTOR_DEMANDA no MS4.
+### hospitalId = o hospital_id de um hospital que JA EXISTE na tabela hospital do MS3 (ativo).
+POST {{ms4}}/usuarios
+Content-Type: application/json
+Authorization: Bearer {{loginAdmin.response.body.access_token}}
+
+{
+  "perfil": "GESTOR_DEMANDA",
+  "nomeCompleto": "Gestor Maria Teste",
+  "email": "gestor.maria.teste@hemovida.com",
+  "senha": "Maria54321",
+  "hospitalId": 1
+}
+
+### 3) Login do gestor no MS4 (devolve o token que o MS3 aceita)
+# @name loginGestor
+POST {{ms4}}/auth/login/admin
+Content-Type: application/json
+
+{ "email": "gestor.maria.teste@hemovida.com", "senha": "Maria54321" }
+
+### 4) MS3 sem token (deve dar 401)
+GET {{ms3}}/requests
+
+### 5) Criar pedido (201)
+POST {{ms3}}/requests
+Content-Type: application/json
+Authorization: Bearer {{loginGestor.response.body.access_token}}
+
+{
+  "tipo": "REPOSICAO",
+  "itens": [
+    { "tipoSanguineo": "O-", "hemocomponente": "PLAQUETAS", "quantidadeBolsas": 3 }
+  ]
+}
+
+### 6) Listar pedidos do meu hospital (200)
+GET {{ms3}}/requests
+Authorization: Bearer {{loginGestor.response.body.access_token}}
+
+### 7) Buscar um pedido (troque o 1 pelo id que apareceu)
+GET {{ms3}}/requests/1
+Authorization: Bearer {{loginGestor.response.body.access_token}}
+
+### 8) Cancelar (200 se estava PENDENTE)
+PATCH {{ms3}}/requests/9/cancel
+Authorization: Bearer {{loginGestor.response.body.access_token}}
+
+### 9) Token do ADMIN no MS3 (deve dar 403: so GESTOR_DEMANDA acessa)
+GET {{ms3}}/requests
+Authorization: Bearer {{loginAdmin.response.body.access_token}}

@@ -1,0 +1,7 @@
+{
+  "tipo": "EMERGENCIAL",
+  "justificativa": "teste - acidente com varias vitimas",
+  "itens": [
+    { "tipoSanguineo": "O-", "hemocomponente": "CONCENTRADO_HEMACIAS", "quantidadeBolsas": 5 }
+  ]
+}

@@ -1,19 +1,17 @@
 import {
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { randomBytes } from 'crypto';
 import { Prisma } from '../generated/prisma/client';
+import type { JwtPayload } from '../auth/auth.types';
 import { PrismaService } from '../prisma/prisma.service';
 import { TIPOS_SANGUINEOS } from './blood-types';
 import { CreateRequestDto } from './dto/create-request.dto';
 import { ListRequestsDto } from './dto/list-requests.dto';
 import { STATUS_CANCELAMENTO } from './request-status';
-
-const NOME_DO_GESTOR = {
-  select: { gestor_hospital_nome_completo: true },
-} as const;
 
 function gerarCodigoPedido(): string {
   const data = new Date().toISOString().slice(0, 10).replaceAll('-', '');
@@ -25,20 +23,29 @@ function gerarCodigoPedido(): string {
 export class RequestsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  // Unico ponto de acesso ao gestor (depois vira o microsservico de usuarios)
-  private async buscarGestor(gestorId: bigint) {
-    const gestor = await this.prisma.hospitalManager.findUnique({
-      where: { gestor_hospital_id: gestorId },
-      select: { gestor_hospital_id: true, hospital_id: true },
-    });
-    if (!gestor) {
-      throw new NotFoundException(`Gestor ${gestorId} nao encontrado`);
+  // O gestor e o hospital vem do TOKEN do MS4 (sub e hospitalId). Nao ha mais tabela
+  // de gestor neste servico: gestor_hospital_id guarda o id do usuario no MS4.
+  private lerGestor(usuario: JwtPayload) {
+    if (usuario.hospitalId === undefined) {
+      throw new ForbiddenException('Usuario sem hospital vinculado.');
     }
-    return gestor;
+    return {
+      gestor_hospital_id: BigInt(usuario.sub),
+      hospital_id: BigInt(usuario.hospitalId),
+    };
   }
 
-  async criar(gestorId: bigint, dto: CreateRequestDto) {
-    const gestor = await this.buscarGestor(gestorId);
+  async criar(usuario: JwtPayload, dto: CreateRequestDto) {
+    const gestor = this.lerGestor(usuario);
+
+    // O hospital do token precisa existir aqui e estar ativo.
+    const hospital = await this.prisma.hospital.findUnique({
+      where: { hospital_id: gestor.hospital_id },
+      select: { hospital_status: true },
+    });
+    if (!hospital?.hospital_status) {
+      throw new ForbiddenException('Hospital inexistente ou inativo.');
+    }
 
     try {
       return await this.prisma.request.create({
@@ -75,8 +82,8 @@ export class RequestsService {
     }
   }
 
-  async listar(gestorId: bigint, query: ListRequestsDto) {
-    const gestor = await this.buscarGestor(gestorId);
+  async listar(usuario: JwtPayload, query: ListRequestsDto) {
+    const gestor = this.lerGestor(usuario);
     const page = query.page ?? 1;
     const limit = query.limit ?? 10;
     const where = { hospital_id: gestor.hospital_id };
@@ -95,7 +102,7 @@ export class RequestsService {
           solicitacao_status_atual: true,
           solicitacao_data_hora_criacao: true,
           solicitacao_data_hora_prevista_entrega: true,
-          gestor: NOME_DO_GESTOR,
+          gestor_hospital_id: true,
           _count: { select: { itens: true } },
         },
       }),
@@ -107,17 +114,15 @@ export class RequestsService {
     };
   }
 
-  async buscarPorId(gestorId: bigint, id: bigint) {
-    const gestor = await this.buscarGestor(gestorId);
+  async buscarPorId(usuario: JwtPayload, id: bigint) {
+    const gestor = this.lerGestor(usuario);
 
     const pedido = await this.prisma.request.findFirst({
       where: { solicitacao_id: id, hospital_id: gestor.hospital_id },
       include: {
-        gestor: NOME_DO_GESTOR,
         itens: true,
         historicos: {
           orderBy: { historico_status_id: 'asc' }, // linha do tempo
-          include: { gestor: NOME_DO_GESTOR },
         },
       },
     });
@@ -125,8 +130,8 @@ export class RequestsService {
     return pedido;
   }
 
-  async cancelar(gestorId: bigint, id: bigint) {
-    const gestor = await this.buscarGestor(gestorId);
+  async cancelar(usuario: JwtPayload, id: bigint) {
+    const gestor = this.lerGestor(usuario);
 
     const pedido = await this.prisma.request.findFirst({
       where: { solicitacao_id: id, hospital_id: gestor.hospital_id },
@@ -160,13 +165,15 @@ export class RequestsService {
       });
     });
 
-    return this.buscarPorId(gestorId, id);
+    return this.buscarPorId(usuario, id);
   }
 
   private traduzirErro(erro: unknown): Error {
     if (erro instanceof Prisma.PrismaClientKnownRequestError) {
       if (erro.code === 'P2002') {
-        return new ConflictException('Codigo de pedido repetido, tente de novo');
+        return new ConflictException(
+          'Codigo de pedido repetido, tente de novo',
+        );
       }
     }
     return erro instanceof Error ? erro : new Error(String(erro));

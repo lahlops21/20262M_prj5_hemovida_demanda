@@ -1,154 +1,71 @@
 pipeline {
     agent any
 
-    options {
-        skipDefaultCheckout(true)
-        disableConcurrentBuilds()
-        timestamps()
-    }
-
-    environment {
-        APP_NAME = 'hemovida_demanda'
-    }
-
     stages {
-
-        stage('Checkout GitHub') {
+        stage('Verificar Repositório') {
             steps {
-                checkout([
-                    $class: 'GitSCM',
+                
+                checkout([$class: 'GitSCM',
                     branches: [[name: '*/main']],
-                    userRemoteConfigs: [[
-                        url: 'https://github.com/lahlops21/20262M_prj5_hemovida_demanda'
-                    ]]
+                    useRemoteConfigs: [[url: 'https://github.com/lahlops21/20262M_prj5_hemovida_demanda']]
                 ])
             }
         }
 
-        stage('Fetch Secrets - Infisical') {
+        stage('Instalar Dependências') {
             steps {
-                withCredentials([
-                    string(
-                        credentialsId: 'tokenlaishemovida',
-                        variable: 'INFISICAL_TOKEN'
-                    )
-                ]) {
-                    sh '''
-                        set +x
-                        set -eu
-                        umask 077
-                        rm -f .env
-
-                        npx -y @infisical/cli export \
-                            --env="prod" \
-                            --path="/" \
-                            --token="$INFISICAL_TOKEN" \
-                            > .env
-
-                        test -s .env || { echo "ERRO: .env vazio."; exit 1; }
-
-                        echo "Variáveis carregadas:"
-                        cut -d= -f1 .env
-                    '''
-                }
+                bat 'npm ci'
             }
         }
 
-        stage('Validar Docker Compose') {
+        stage('Testes') {
             steps {
-                sh '''
-                    set -eu
-
-                    docker compose config --quiet
-
-                    echo "Docker Compose validado."
-                '''
+                bat 'npm test'
             }
         }
 
         stage('Construir Imagem Docker') {
             steps {
-                sh '''
-                    set -eu
-
-                    docker compose build
-
-                    echo "Imagem Docker construída."
-                '''
+                bat "docker build -t hemovida-api:${env.BUILD_ID} ."
             }
         }
 
-        stage('Deploy Docker') {
+        stage('Fazer Deploy') {
             steps {
-                sh '''
-                    set -eu
+                // Para e remove o container antigo, se existir
+                bat 'docker stop hemovida-api || exit 0'
+                bat 'docker rm -v hemovida-api || exit 0'
 
-                    docker compose up -d --no-build \
-                        --force-recreate
+                // O "infisical run" injeta DATABASE_URL e JWT_SECRET no docker-compose,
+                // sem escrever nenhum .env em disco.
+                // A Machine Identity usa Client ID + Client Secret. O pipeline troca os dois
+                // por um token temporário e usa esse token no "infisical run".
+                withCredentials([
+                    string(credentialsId: 'infisical-client-id', variable: 'INFISICAL_CLIENT_ID'),
+                    string(credentialsId: 'infisical-client-secret', variable: 'INFISICAL_CLIENT_SECRET')
+                ]) {
+                    script {
+                        def token = bat(
+                            returnStdout: true,
+                            script: '@npx -y @infisical/cli login --method=universal-auth --client-id=%INFISICAL_CLIENT_ID% --client-secret=%INFISICAL_CLIENT_SECRET% --silent --plain'
+                        ).trim()
 
-                    echo "Deploy executado."
-                '''
-            }
-        }
-
-        stage('Verificar Container') {
-            steps {
-                sh '''
-                    set -eu
-
-                    echo "Verificando container..."
-
-                    sleep 10
-
-                    RUNNING=$(docker inspect \
-                        --format '{{.State.Running}}' \
-                        "$APP_NAME")
-
-                    if [ "$RUNNING" != "true" ]; then
-                        echo "ERRO: Container não está rodando."
-
-                        docker compose logs --tail=50 \
-                            "$APP_NAME" || true
-
-                        exit 1
-                    fi
-
-                    echo "Container em execução."
-                    docker compose ps
-
-                    echo "Versão do Node.js no container:"
-                    docker exec "$APP_NAME" node -v
-                '''
+                        withEnv(["INFISICAL_TOKEN=${token}"]) {
+                            // TROQUE pelo ID do seu projeto (Project Settings no Infisical)
+                            bat 'npx -y @infisical/cli run --env=prod --path=/ --projectId=COLE-AQUI-O-ID-DO-PROJETO -- docker-compose up -d --build'
+                        }
+                    }
+                }
             }
         }
     }
 
     post {
-
         success {
-            echo '''
-            ====================================
-             HEMOVIDA API
-             DEPLOY EXECUTADO COM SUCESSO
-             PORTA: 7504
-            ====================================
-            '''
+            echo 'Deploy realizado com sucesso!'
         }
-
         failure {
-            echo '''
-            ====================================
-             HEMOVIDA API
-             FALHA NA EXECUÇÃO DO PIPELINE
-            ====================================
-            '''
+            echo 'Houve um erro durante o deploy.'
         }
-
-        // always {
-        //     sh '''
-        //         set +x
-        //         rm -f .env
-        //     '''
-        // }
     }
 }

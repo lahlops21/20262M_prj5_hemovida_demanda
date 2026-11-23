@@ -1,0 +1,30 @@
+MS3 DEMANDA - ADAPTACAO AO LOGIN DO MS4
+=======================================
+
+O QUE MUDOU
+- O MS3 deixa de usar o header x-gestor-id e passa a exigir o TOKEN (JWT) emitido pelo MS4.
+- Quem e o gestor (sub) e qual e o hospital (hospitalId) vem do token.
+- So o perfil GESTOR_DEMANDA acessa /requests. /health continua aberto.
+- Nao existe mais a tabela/entidade de gestor no codigo. Os campos gestor_hospital_id
+  (solicitacao e historico_status) passam a guardar o ID DO USUARIO NO MS4.
+- As respostas nao trazem mais o nome do gestor, so gestor_hospital_id.
+- Extras: helmet, filtro de erros do Prisma (duplicado=409), SELECT 1 na subida,
+  sem console.log de segredos, engines corrigido, .env.example corrigido.
+
+PASSO A PASSO
+1) Copie TODO o conteudo desta pasta para dentro do seu projeto MS3, aceitando substituir.
+2) APAGUE o arquivo:  src/common/helpers/gestor-id.ts   (nao e mais usado)
+3) No terminal, dentro do MS3:
+      npm install
+      npm run prisma:generate
+4) No .env do MS3: o JWT_SECRET tem que ser IGUAL ao do MS4. PORT=7504.
+5) npm run start
+6) Teste com o requests.http desta pasta.
+
+ATENCAO - BANCO (precisa do professor)
+O banco do MS3 ainda tem 2 chaves estrangeiras antigas que apontam para a tabela gestor_hospital:
+   fk_solicitacao_usuario        (tabela solicitacao)
+   fk_usuario_historico_status   (tabela historico_status)
+Enquanto elas existirem, criar um pedido DA ERRO (o id do usuario do MS4 nao existe nessa tabela).
+O professor precisa remover essas 2 chaves. Depois, a tabela gestor_hospital pode ser apagada.
+"npm run prisma:check" vai apontar diferencas ate isso ser feito - e esperado.
