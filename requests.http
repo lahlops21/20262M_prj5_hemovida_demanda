@@ -20,9 +20,9 @@ Authorization: Bearer {{loginAdmin.response.body.access_token}}
 
 {
   "perfil": "GESTOR_DEMANDA",
-  "nomeCompleto": "Gestor Maria Teste",
-  "email": "gestor.maria.teste@hemovida.com",
-  "senha": "Maria54321",
+  "nomeCompleto": "Gestor Paulo Teste",
+  "email": "gestor.paulo.teste@hemovida.com",
+  "senha": "paulo54321",
   "hospitalId": 1
 }
 
@@ -31,7 +31,7 @@ Authorization: Bearer {{loginAdmin.response.body.access_token}}
 POST {{ms4}}/auth/login/admin
 Content-Type: application/json
 
-{ "email": "gestor.maria.teste@hemovida.com", "senha": "Maria54321" }
+{ "email": "gestor.paulo.teste@hemovida.com", "senha": "paulo54321" }
 
 ### 4) MS3 sem token (deve dar 401)
 GET {{ms3}}/requests
@@ -53,11 +53,11 @@ GET {{ms3}}/requests
 Authorization: Bearer {{loginGestor.response.body.access_token}}
 
 ### 7) Buscar um pedido (troque o 1 pelo id que apareceu)
-GET {{ms3}}/requests/1
+GET {{ms3}}/requests/7
 Authorization: Bearer {{loginGestor.response.body.access_token}}
 
 ### 8) Cancelar (200 se estava PENDENTE)
-PATCH {{ms3}}/requests/9/cancel
+PATCH {{ms3}}/requests/8/cancel
 Authorization: Bearer {{loginGestor.response.body.access_token}}
 
 ### 9) Token do ADMIN no MS3 (deve dar 403: so GESTOR_DEMANDA acessa)
